@@ -1,0 +1,44 @@
+1. 许可声明与头文件引用 (License & Headers)
+SPDX-License-Identifier: 位于文件第一行，是 Linux 内核社区强制要求的标准化开源许可证标识（此处为 GPL-2.0-only），用于自动化合规检查。
+pr_fmt 宏定义: 必须在所有 #include 之前定义。它会将后续代码中所有的 pr_info()、pr_err() 等日志打印函数自动加上 "arm-gic-v3: " 前缀，便于在内核日志（dmesg）中快速过滤和定位该驱动的输出。
+头文件分组:
+<linux/irqchip/arm-gic-v3.h>: 提供 GICv3 专属的寄存器偏移量宏（如 GICD_TYPER）和系统寄存器访问内联函数。
+<linux/irqdomain.h>: 中断域子系统头文件，用于管理硬件中断号（hwirq）与 Linux 虚拟中断号（virq）的映射。
+<asm/exception.h>: 提供 set_handle_irq() 等架构级异常入口注册接口。
+
+2. 私有数据结构定义 (Private Data Structure)
+struct gic_chip_data: 封装了当前 GIC 控制器实例的所有运行时状态。由于一个 SoC 通常只有一个 GIC，这里使用了全局静态变量 gic_data 并用 __read_mostly 修饰，将其放入只读数据段以优化缓存命中率。
+核心字段解析:
+dist_base: GIC Distributor (GICD) 的 MMIO 基地址。GICD 是全局共享的，负责中断的路由、优先级和使能控制。
+redist_base: GIC Redistributor (GICR) 的 per-cpu MMIO 基地址。GICv3 的核心特性，每个 CPU 核心拥有独立的 GICR 实例，因此必须使用 __percpu 修饰符，通过 this_cpu_ptr() 访问当前核心的寄存器。
+nr_irqs: 从硬件寄存器读取的实际支持中断总数。
+domain: 指向该 GIC 创建的 irq_domain 指针，是连接硬件与内核中断子系统的桥梁。
+
+3. 寄存器访问辅助函数 (Register Access Helpers)
+内存屏障安全: 封装了 readl_relaxed() 和 writel_relaxed()。在 ARM 架构上，GIC 寄存器的读写通常是顺序敏感的，但不需要完整的内存屏障。_relaxed 后缀避免了不必要的 DMB 指令，在保证正确性的同时最大化性能。
+抽象层隔离: 将底层的 MMIO 读写操作与上层逻辑解耦。如果未来需要适配特殊的总线访问方式（如某些 SoC 的 GIC 需要通过 secure monitor call 访问），只需修改这两个函数即可，无需改动业务逻辑。
+
+4. irq_chip 回调实现 (Interrupt Chip Operations)
+这是驱动与内核通用中断层交互的操作原语接口，定义了“如何控制一个具体的中断线”：
+gic_mask_irq / gic_unmask_irq: 通过向 GICD 的 ICENABLER / ISENABLER 寄存器写入特定位来禁用/使能中断。注意这里使用了位运算 (hwirq / 32) * 4 来计算寄存器偏移，因为 GIC 的使能寄存器是每 32 个中断一组。
+gic_eoi_irq: End Of Interrupt。GICv3 与 GICv2 的最大区别在于 EOI 操作不再通过 MMIO 写寄存器完成，而是通过写入系统寄存器 ICC_EOIR1_EL1 完成，这大大降低了中断处理的延迟。
+gic_set_affinity: SMP 多核亲和性设置。GICv3 通过配置 GICD_IROUTERn 寄存器将 SPI 中断路由到指定的目标 CPU。
+flags 标志位:
+IRQCHIP_SET_TYPE_MASKED: 确保在修改中断触发类型（电平/边沿）时，硬件会自动屏蔽该中断以防止毛刺。
+IRQCHIP_SKIP_SET_WAKE: 告知内核该控制器不支持或不需要单独的唤醒中断配置。
+IRQCHIP_MASK_ON_SUSPEND: 系统挂起时自动屏蔽所有未标记为唤醒源的中断。
+5. irq_domain_ops 实现 (Interrupt Domain Operations)
+负责中断号的翻译与绑定，是设备树（Device Tree）与内核中断子系统的对接层：
+gic_irq_domain_map: 当设备驱动调用 request_irq() 或设备树解析时触发。它将硬件中断号（hw）与 Linux 虚拟中断号（virq）绑定，并关联上一步定义的 gic_chip 操作集。对于普通 SPI/PPI 中断，默认使用 handle_fasteoi_irq 流控处理器。
+LPI 边界检查: GICv3 引入了 LPI（Locality-specific Peripheral Interrupts），其编号通常从 8192 开始。LPI 使用独立的 ITS（Interrupt Translation Service）映射路径，不能走普通的线性映射，因此在此处做了拦截返回 -EPERM。
+xlate = irq_domain_xlate_fourcell: 指定设备树中 interrupts 属性的解析格式。GICv3 标准要求使用 4 个 cell：<type number flags cpu_mask>，比 GICv2 的 3-cell 多了一个 CPU 掩码字段用于 PPI 的亲和性描述。
+
+6. 硬件初始化与注册入口 (Initialization & Registration)
+驱动的启动引导逻辑，在设备树扫描阶段被自动调用：
+MMIO 映射: 使用 of_iomap() 和 of_io_request_and_map() 从设备树的 reg 属性中提取物理地址并映射到内核虚拟地址空间。后者还会自动在 /proc/iomem 中注册资源占用。
+中断数量探测: 读取 GICD_TYPER 寄存器的低 5 位，计算公式为 (N+1)*32，动态确定硬件实际支持的中断线数量，避免硬编码。
+Domain 创建: 使用 irq_domain_add_linear() 创建线性映射域。对于 GIC 这种中断号连续且范围已知的控制器，线性表是最优选择（O(1) 查找）。
+全局入口注册:
+irq_set_default_host(): 将此 GIC 设为系统的默认中断控制器，所有未在设备树中显式指定 interrupt-parent 的设备都将使用此控制器。
+set_handle_irq(): 注册 ARM64 架构的 IRQ 异常向量处理函数。当 CPU 收到中断异常时，汇编跳转表会直接进入此函数进行分发。
+IRQCHIP_DECLARE 宏: 这是整个驱动的灵魂入口。它将 compatible 字符串 "arm,gic-v3" 与初始化函数 gic_of_init 绑定到一个特殊的 linker section (__irqchip_of_table)。内核启动时 of_irq_init() 会遍历设备树，匹配到该字符串后自动调用初始化函数，完全无需在其他地方手动调用 init 函数。
