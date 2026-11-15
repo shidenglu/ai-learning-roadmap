@@ -1,0 +1,25 @@
+              Operating System
+                      |
+                      v
+                 MMU Driver
+                      |
+          +-----------+-----------+
+          |           |           |
+      MMU_Init()  MMU_Map()   MMU_Unmap()
+          |           |           |
+          +-----------+-----------+
+                      |
+                  MMU HAL
+                      |
+          +-----------+-----------+
+          |           |           |
+       Page Table   TLB       Control
+       Management  Control   Register
+          |           |           |
+          +-----------+-----------+
+                      |
+                      v
+                    MMU
+                      |
+                      v
+                 Physical Memory
