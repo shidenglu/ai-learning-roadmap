@@ -1,0 +1,21 @@
++--------------------------------+
+|          Application           |
++--------------------------------+
+|          LED Driver API        |
+|                                |
+|  LED_Init()                    |
+|  LED_On()                      |
+|  LED_Off()                     |
+|  LED_Toggle()                  |
+|  LED_Blink()                   |
+|  LED_SetBrightness()           |
++--------------------------------+
+|          GPIO / PWM            |
+|                                |
+|       GPIO Controller          |
+|       PWM Controller           |
++--------------------------------+
+|           Hardware             |
+|                                |
+|             LED                |
++--------------------------------+
