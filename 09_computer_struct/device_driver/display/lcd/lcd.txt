@@ -1,0 +1,23 @@
++--------------------------------+
+|         Application            |
++--------------------------------+
+|         LCD Driver API         |
+|                                |
+|  LCD_Init()                    |
+|  LCD_Enable()                  |
+|  LCD_Clear()                   |
+|  LCD_DrawPixel()               |
+|  LCD_DrawRectangle()           |
+|  LCD_GetStatus()               |
++--------------------------------+
+|       Framebuffer Layer        |
+|                                |
+|       Pixel Buffer             |
++--------------------------------+
+|       LCD Hardware Layer       |
+|                                |
+| Display Controller / Interface |
+| RGB / SPI / MIPI DSI            |
++--------------------------------+
+|           LCD Panel             |
++--------------------------------+
