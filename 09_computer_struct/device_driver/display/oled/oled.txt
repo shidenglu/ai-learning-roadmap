@@ -1,0 +1,28 @@
++--------------------------------+
+|          Application           |
++--------------------------------+
+|          OLED Driver API       |
+|                                |
+|  OLED_Init()                   |
+|  OLED_Enable()                 |
+|  OLED_Disable()                |
+|  OLED_Clear()                  |
+|  OLED_DrawPixel()              |
+|  OLED_DrawRectangle()          |
+|  OLED_Flush()                  |
++--------------------------------+
+|         Framebuffer            |
+|                                |
+|       Display Buffer           |
++--------------------------------+
+|          I2C / SPI             |
+|                                |
+|       I2C Controller           |
+|       SPI Controller           |
++--------------------------------+
+|       OLED Controller          |
+|                                |
+|          SSD1306               |
++--------------------------------+
+|           OLED Panel           |
++--------------------------------+
