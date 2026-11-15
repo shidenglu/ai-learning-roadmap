@@ -1,0 +1,12 @@
+mmu_driver/
+│
+├── include/
+│   ├── mmu.h
+│   └── mmu_hal.h
+│
+├── src/
+│   ├── mmu.c
+│   └── mmu_hal.c
+│
+├── main.c
+└── Makefile

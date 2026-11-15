@@ -1,0 +1,22 @@
+                 Application
+                      |
+                      v
+              Memory Driver API
+                      |
+          +-----------+-----------+
+          |           |           |
+        Init()      Read()      Write()
+          |           |           |
+          +-----------+-----------+
+                      |
+                Memory HAL
+                      |
+          +-----------+-----------+
+          |           |           |
+       Hardware    DMA        Controller
+       Register   Transfer    Interface
+          |           |           |
+          +-----------+-----------+
+                      |
+                      v
+                Memory Device
