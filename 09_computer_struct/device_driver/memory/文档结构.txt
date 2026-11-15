@@ -1,0 +1,12 @@
+memory_driver/
+│
+├── include/
+│   ├── memory.h          // 内存驱动接口
+│   └── memory_hal.h      // 硬件抽象接口
+│
+├── src/
+│   ├── memory.c          // 内存驱动核心实现
+│   └── memory_hal.c      // 硬件抽象层实现
+│
+├── main.c                // 测试程序
+└── Makefile
