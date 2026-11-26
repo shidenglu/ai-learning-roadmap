@@ -1,0 +1,13 @@
+常见浮点数类型对比
+类型	全称	总位数	符号位	指数位	尾数位	存储空间
+FP16	Half Precision	16 bit	1	5	10	2 Byte
+BF16	Brain Float16	16 bit	1	8	7	2 Byte
+FP32	Single Precision	32 bit	1	8	23	4 Byte
+FP64	Double Precision	64 bit	1	11	52	8 Byte
+
+常见复数浮点数类型
+复数浮点数由两个相同精度的实数浮点数组成，分别表示实部和虚部。
+类型	实部	虚部	总位数	存储空间
+CFLOAT16	FP16	FP16	32 bit	4 Byte
+CFLOAT32	FP32	FP32	64 bit	8 Byte
+CFLOAT64	FP64	FP64	128 bit	16 Byte
